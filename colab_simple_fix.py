@@ -106,11 +106,20 @@ class KotraSeleniumCrawler:
         self.base_url = "https://www.kotra.or.kr/bigdata/partner/search"
 
     def setup_page(self, country_code: str, hs_code: str):
-        """페이지 설정: 국가 선택 및 HS CODE 입력"""
+        """페이지 설정: 국가 선택 및 HS CODE 입력 (실제 요소 ID 사용)"""
         try:
             self.driver.get(self.base_url)
             time.sleep(3)
 
+            # "해외관세청 실수입기업 검색" 탭 클릭
+            try:
+                bl_tab = self.driver.find_element(By.ID, "partner_bl")
+                bl_tab.click()
+                time.sleep(2)
+            except:
+                pass
+
+            # 국가 선택
             country_select = self.wait.until(
                 EC.presence_of_element_located((By.ID, "country-list-ex"))
             )
@@ -118,18 +127,36 @@ class KotraSeleniumCrawler:
             select.select_by_value(country_code)
             time.sleep(1)
 
-            hs_input = self.driver.find_element(By.ID, "hscode-input-ex")
+            # HS CODE 자릿수 선택 (6자리)
+            try:
+                radio_6 = self.driver.find_element(By.ID, "hscdDigits6")
+                radio_6.click()
+                time.sleep(1)
+            except:
+                pass
+
+            # HS CODE 입력 (실제 ID: hs-code)
+            hs_input = self.driver.find_element(By.ID, "hs-code")
             hs_input.clear()
             hs_input.send_keys(hs_code)
             time.sleep(1)
 
-            search_button = self.driver.find_element(By.CSS_SELECTOR, "button.btn-search")
+            # 검색 버튼 클릭
+            search_buttons = self.driver.find_elements(By.CSS_SELECTOR, ".accor-desc .btn-wrap button.mu-btn")
+            if len(search_buttons) >= 2:
+                search_button = search_buttons[1]
+            else:
+                search_button = self.driver.find_element(By.XPATH,
+                    "//li[contains(@class, 'partner_bl')]//button[contains(@class, 'mu-btn') and text()='검색']")
+
             search_button.click()
             time.sleep(3)
 
             return True
         except Exception as e:
             print(f"⚠️ 페이지 설정 중 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def extract_table_data(self) -> List[Dict]:
