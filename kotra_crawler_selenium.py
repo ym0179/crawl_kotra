@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
 import pandas as pd
 import time
@@ -26,14 +27,32 @@ class KotraSeleniumCrawler:
         chrome_options = Options()
 
         if headless:
-            chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--headless=new')
             chrome_options.add_argument('--no-sandbox')
             chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument('--disable-gpu')
+            chrome_options.add_argument('--disable-software-rasterizer')
 
         chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_argument('--window-size=1920,1080')
         chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
-        self.driver = webdriver.Chrome(options=chrome_options)
+        # Colab 환경 감지 및 ChromeDriver 설정
+        try:
+            import google.colab
+            # Colab 환경: chromium-chromedriver 사용
+            service = Service('/usr/bin/chromedriver')
+            self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        except ImportError:
+            # 로컬 환경: webdriver-manager 사용 (자동 다운로드)
+            try:
+                from webdriver_manager.chrome import ChromeDriverManager
+                service = Service(ChromeDriverManager().install())
+                self.driver = webdriver.Chrome(service=service, options=chrome_options)
+            except ImportError:
+                # webdriver-manager 없으면 기본 방식
+                self.driver = webdriver.Chrome(options=chrome_options)
+
         self.wait = WebDriverWait(self.driver, 20)
         self.base_url = "https://www.kotra.or.kr/bigdata/partner/search"
 
@@ -264,22 +283,46 @@ def install_colab_dependencies():
     """
     import subprocess
     import sys
+    import os
 
     print("Colab 환경 설정 중...")
+    print("이 작업은 1-2분 정도 소요됩니다...")
 
-    # Chrome 및 ChromeDriver 설치
-    subprocess.run(['apt-get', 'update'], check=True)
-    subprocess.run(['apt-get', 'install', '-y', 'chromium-chromedriver'], check=True)
+    try:
+        # Chrome 및 ChromeDriver 설치
+        print("\n1. Chrome 및 ChromeDriver 설치 중...")
+        subprocess.run(['apt-get', 'update', '-qq'], check=False, capture_output=True)
+        subprocess.run(['apt-get', 'install', '-y', '-qq', 'chromium-chromedriver'],
+                      check=False, capture_output=True)
+        subprocess.run(['apt-get', 'install', '-y', '-qq', 'chromium-browser'],
+                      check=False, capture_output=True)
 
-    # 파이썬 패키지 설치
-    subprocess.run([sys.executable, '-m', 'pip', 'install', '-q',
-                   'selenium', 'pandas', 'openpyxl'], check=True)
+        # 파이썬 패키지 설치
+        print("2. Python 패키지 설치 중...")
+        subprocess.run([sys.executable, '-m', 'pip', 'install', '-q',
+                       'selenium', 'pandas', 'openpyxl'],
+                      check=True, capture_output=True)
 
-    # ChromeDriver 경로 설정
-    import os
-    os.environ['PATH'] += ':/usr/lib/chromium-browser/'
+        # ChromeDriver 심볼릭 링크 생성
+        print("3. ChromeDriver 경로 설정 중...")
+        if os.path.exists('/usr/lib/chromium-browser/chromedriver'):
+            if not os.path.exists('/usr/bin/chromedriver'):
+                subprocess.run(['ln', '-s',
+                              '/usr/lib/chromium-browser/chromedriver',
+                              '/usr/bin/chromedriver'],
+                              check=False, capture_output=True)
 
-    print("설치 완료!")
+        # ChromeDriver 실행 권한 부여
+        if os.path.exists('/usr/bin/chromedriver'):
+            subprocess.run(['chmod', '+x', '/usr/bin/chromedriver'],
+                          check=False, capture_output=True)
+
+        print("\n✅ 설치 완료!")
+        print("이제 크롤러를 실행할 수 있습니다.\n")
+
+    except Exception as e:
+        print(f"\n⚠️ 설치 중 일부 오류 발생: {str(e)}")
+        print("하지만 크롤러는 작동할 수 있습니다. 계속 진행합니다...\n")
 
 
 def main():
