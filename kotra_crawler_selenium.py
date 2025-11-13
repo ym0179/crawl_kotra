@@ -72,14 +72,14 @@ class KotraSeleniumCrawler:
             # "해외관세청 실수입기업 검색" 탭 클릭
             try:
                 bl_tab = self.driver.find_element(By.ID, "partner_bl")
-                bl_tab.click()
-                time.sleep(2)
+                self.driver.execute_script("arguments[0].click();", bl_tab)
+                time.sleep(3)  # 탭 전환 애니메이션 대기
             except:
                 pass
 
-            # 국가 드롭다운 선택
+            # 국가 드롭다운 선택 (클릭 가능할 때까지 대기)
             country_select = self.wait.until(
-                EC.presence_of_element_located((By.ID, "country-list-ex"))
+                EC.element_to_be_clickable((By.ID, "country-list-ex"))
             )
             select = Select(country_select)
             select.select_by_value(country_code)
@@ -87,27 +87,28 @@ class KotraSeleniumCrawler:
 
             # HS CODE 자릿수 선택 (6자리)
             try:
-                radio_6 = self.driver.find_element(By.ID, "hscdDigits6")
-                radio_6.click()
+                radio_6 = self.wait.until(
+                    EC.element_to_be_clickable((By.ID, "hscdDigits6"))
+                )
+                self.driver.execute_script("arguments[0].click();", radio_6)
                 time.sleep(1)
             except:
                 pass
 
             # HS CODE 입력 (실제 ID: hs-code)
-            hs_input = self.driver.find_element(By.ID, "hs-code")
+            hs_input = self.wait.until(
+                EC.element_to_be_clickable((By.ID, "hs-code"))
+            )
             hs_input.clear()
             hs_input.send_keys(hs_code)
             time.sleep(1)
 
-            # 검색 버튼 클릭
-            search_buttons = self.driver.find_elements(By.CSS_SELECTOR, ".accor-desc .btn-wrap button.mu-btn")
-            if len(search_buttons) >= 2:
-                search_button = search_buttons[1]  # 두 번째 검색 버튼 (해외관세청 섹션)
-            else:
-                search_button = self.driver.find_element(By.XPATH,
-                    "//li[contains(@class, 'partner_bl')]//button[contains(@class, 'mu-btn') and text()='검색']")
-
-            search_button.click()
+            # 검색 버튼 클릭 (XPath로 정확하게 타겟팅)
+            search_button = self.wait.until(
+                EC.element_to_be_clickable((By.XPATH,
+                    "//li[@id='partner_bl']//button[contains(@class, 'mu-btn') and contains(text(), '검색')]"))
+            )
+            self.driver.execute_script("arguments[0].click();", search_button)
 
             # 결과 로딩 대기
             time.sleep(3)
