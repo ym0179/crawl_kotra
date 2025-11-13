@@ -100,28 +100,24 @@ class KotraSeleniumCrawler:
             print(f"  ✅ HS CODE 입력: {hs_code}")
             time.sleep(2)
 
-            # 검색 버튼 클릭 (partner_bl 섹션 안의 검색 버튼)
-            print(f"  🔍 검색 버튼 찾기 (partner_bl 섹션)...")
+            # 검색 버튼 클릭 (두 번째 검색 버튼)
+            print(f"  🔍 검색 버튼 찾기 (두 번째 검색 버튼)...")
             try:
-                # partner_bl 섹션 안의 검색 버튼 찾기 (새로고침 버튼 제외)
-                search_button = self.wait.until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, "#partner_bl .btn-wrap button.mu-btn:not(.icon-only)"))
-                )
-                self.driver.execute_script("arguments[0].click();", search_button)
-                print(f"  ✅ 검색 실행 (partner_bl 검색 버튼)")
+                # 모든 검색 버튼 찾기
+                search_buttons = self.driver.find_elements(By.CSS_SELECTOR, "button.mu-btn")
+                search_btn_list = [btn for btn in search_buttons if '검색' in btn.text]
+
+                if len(search_btn_list) >= 2:
+                    # 두 번째 검색 버튼 클릭
+                    self.driver.execute_script("arguments[0].click();", search_btn_list[1])
+                    print(f"  ✅ 검색 실행 (두 번째 검색 버튼)")
+                else:
+                    print(f"  ⚠️ 검색 버튼이 {len(search_btn_list)}개만 발견됨")
+                    if len(search_btn_list) >= 1:
+                        self.driver.execute_script("arguments[0].click();", search_btn_list[0])
+                        print(f"  ⚠️ 첫 번째 검색 버튼으로 대체")
             except Exception as e:
-                print(f"  ⚠️ 검색 버튼 클릭 실패: {str(e)}")
-                # 대체 방법: partner_bl 내부의 모든 검색 버튼 찾기
-                try:
-                    partner_bl = self.driver.find_element(By.ID, "partner_bl")
-                    search_buttons = partner_bl.find_elements(By.CSS_SELECTOR, "button.mu-btn")
-                    for btn in search_buttons:
-                        if '검색' in btn.text and 'icon-only' not in btn.get_attribute('class'):
-                            self.driver.execute_script("arguments[0].click();", btn)
-                            print(f"  ✅ 검색 실행 (대체 방법)")
-                            break
-                except Exception as e2:
-                    print(f"  ❌ 대체 방법도 실패: {str(e2)}")
+                print(f"  ❌ 검색 버튼 클릭 실패: {str(e)}")
 
             print(f"  ⏳ 검색 결과 로딩 (10초)...")
             time.sleep(10)
