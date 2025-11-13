@@ -100,19 +100,28 @@ class KotraSeleniumCrawler:
             print(f"  ✅ HS CODE 입력: {hs_code}")
             time.sleep(2)
 
-            # 검색 버튼 클릭
-            print(f"  🔍 검색 버튼 찾기...")
-            # 검색 버튼 찾기 (여러 방법 시도)
+            # 검색 버튼 클릭 (partner_bl 섹션 안의 검색 버튼)
+            print(f"  🔍 검색 버튼 찾기 (partner_bl 섹션)...")
             try:
-                # 방법 1: CSS Selector로 검색 버튼 찾기
-                search_buttons = self.driver.find_elements(By.CSS_SELECTOR, "button.mu-btn")
-                for btn in search_buttons:
-                    if '검색' in btn.text:
-                        self.driver.execute_script("arguments[0].click();", btn)
-                        print(f"  ✅ 검색 실행")
-                        break
+                # partner_bl 섹션 안의 검색 버튼 찾기 (새로고침 버튼 제외)
+                search_button = self.wait.until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "#partner_bl .btn-wrap button.mu-btn:not(.icon-only)"))
+                )
+                self.driver.execute_script("arguments[0].click();", search_button)
+                print(f"  ✅ 검색 실행 (partner_bl 검색 버튼)")
             except Exception as e:
                 print(f"  ⚠️ 검색 버튼 클릭 실패: {str(e)}")
+                # 대체 방법: partner_bl 내부의 모든 검색 버튼 찾기
+                try:
+                    partner_bl = self.driver.find_element(By.ID, "partner_bl")
+                    search_buttons = partner_bl.find_elements(By.CSS_SELECTOR, "button.mu-btn")
+                    for btn in search_buttons:
+                        if '검색' in btn.text and 'icon-only' not in btn.get_attribute('class'):
+                            self.driver.execute_script("arguments[0].click();", btn)
+                            print(f"  ✅ 검색 실행 (대체 방법)")
+                            break
+                except Exception as e2:
+                    print(f"  ❌ 대체 방법도 실패: {str(e2)}")
 
             print(f"  ⏳ 검색 결과 로딩 (10초)...")
             time.sleep(10)
