@@ -111,14 +111,6 @@ class KotraSeleniumCrawler:
             self.driver.get(self.base_url)
             time.sleep(3)
 
-            # "해외관세청 실수입기업 검색" 탭 클릭
-            try:
-                bl_tab = self.driver.find_element(By.ID, "partner_bl")
-                self.driver.execute_script("arguments[0].click();", bl_tab)
-                time.sleep(3)  # 탭 전환 애니메이션 대기
-            except:
-                pass
-
             # 국가 선택 (클릭 가능할 때까지 대기)
             country_select = self.wait.until(
                 EC.element_to_be_clickable((By.ID, "country-list-ex"))
@@ -127,7 +119,7 @@ class KotraSeleniumCrawler:
             select.select_by_value(country_code)
             time.sleep(1)
 
-            # HS CODE 자릿수 선택 (6자리)
+            # HS CODE 자릿수 선택 (6자리) - 필요한 경우
             try:
                 radio_6 = self.wait.until(
                     EC.element_to_be_clickable((By.ID, "hscdDigits6"))
@@ -145,12 +137,15 @@ class KotraSeleniumCrawler:
             hs_input.send_keys(hs_code)
             time.sleep(1)
 
-            # 검색 버튼 클릭 (XPath로 정확하게 타겟팅)
-            search_button = self.wait.until(
-                EC.element_to_be_clickable((By.XPATH,
-                    "//li[@id='partner_bl']//button[contains(@class, 'mu-btn') and contains(text(), '검색')]"))
-            )
-            self.driver.execute_script("arguments[0].click();", search_button)
+            # 검색 버튼 클릭
+            try:
+                search_buttons = self.driver.find_elements(By.CSS_SELECTOR, "button.mu-btn")
+                for btn in search_buttons:
+                    if '검색' in btn.text:
+                        self.driver.execute_script("arguments[0].click();", btn)
+                        break
+            except:
+                pass
             time.sleep(3)
 
             return True

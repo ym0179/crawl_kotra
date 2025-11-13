@@ -159,16 +159,6 @@ class KotraSeleniumCrawler:
             print(f"  ✅ URL: {self.driver.current_url}")
             print(f"  ✅ 제목: {self.driver.title}")
 
-            # "해외관세청 실수입기업 검색" 탭 클릭
-            print(f"  🔍 해외관세청 실수입기업 검색 탭 클릭...")
-            try:
-                bl_tab = self.driver.find_element(By.ID, "partner_bl")
-                self.driver.execute_script("arguments[0].click();", bl_tab)
-                print(f"  ✅ 탭 클릭 완료")
-                time.sleep(3)  # 탭 전환 애니메이션 대기
-            except Exception as e:
-                print(f"  ⚠️ 탭 클릭 실패: {str(e)}")
-
             # 국가 선택 (클릭 가능할 때까지 대기)
             print(f"  🔍 국가 드롭다운 찾기 (ID: country-list-ex)...")
             country_select = self.wait.until(
@@ -179,14 +169,17 @@ class KotraSeleniumCrawler:
             print(f"  ✅ 국가 선택: {country_code}")
             time.sleep(2)
 
-            # HS CODE 자릿수 선택 (6자리)
+            # HS CODE 자릿수 선택 (6자리) - 필요한 경우
             print(f"  🔍 6자리 라디오 버튼 클릭...")
-            radio_6 = self.wait.until(
-                EC.element_to_be_clickable((By.ID, "hscdDigits6"))
-            )
-            self.driver.execute_script("arguments[0].click();", radio_6)
-            print(f"  ✅ 6자리 선택")
-            time.sleep(1)
+            try:
+                radio_6 = self.wait.until(
+                    EC.element_to_be_clickable((By.ID, "hscdDigits6"))
+                )
+                self.driver.execute_script("arguments[0].click();", radio_6)
+                print(f"  ✅ 6자리 선택")
+                time.sleep(1)
+            except:
+                print(f"  ⚠️ 6자리 버튼 없음 (기본값 사용)")
 
             # HS CODE 입력 (실제 ID: hs-code)
             print(f"  🔍 HS CODE 입력 필드 찾기 (ID: hs-code)...")
@@ -198,14 +191,17 @@ class KotraSeleniumCrawler:
             print(f"  ✅ HS CODE 입력: {hs_code}")
             time.sleep(2)
 
-            # 검색 버튼 클릭 (XPath로 정확하게 타겟팅)
+            # 검색 버튼 클릭
             print(f"  🔍 검색 버튼 찾기...")
-            search_button = self.wait.until(
-                EC.element_to_be_clickable((By.XPATH,
-                    "//li[@id='partner_bl']//button[contains(@class, 'mu-btn') and contains(text(), '검색')]"))
-            )
-            self.driver.execute_script("arguments[0].click();", search_button)
-            print(f"  ✅ 검색 실행")
+            try:
+                search_buttons = self.driver.find_elements(By.CSS_SELECTOR, "button.mu-btn")
+                for btn in search_buttons:
+                    if '검색' in btn.text:
+                        self.driver.execute_script("arguments[0].click();", btn)
+                        print(f"  ✅ 검색 실행")
+                        break
+            except Exception as e:
+                print(f"  ⚠️ 검색 버튼 클릭 실패: {str(e)}")
 
             print(f"  ⏳ 검색 결과 로딩 (10초)...")
             time.sleep(10)
