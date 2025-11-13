@@ -147,9 +147,23 @@ class KotraSeleniumCrawler:
 
             # AG Grid 행 찾기
             rows = self.driver.find_elements(By.CSS_SELECTOR, "div[role='row'][row-index]")
-            print(f"    ✅ {len(rows)}개 행 발견")
+            print(f"    ✅ {len(rows)}개 행 발견 (중복 포함 가능)")
 
-            for idx, row in enumerate(rows):
+            # row-index 기준으로 중복 제거
+            seen_indices = set()
+            unique_rows = []
+
+            for row in rows:
+                row_idx = row.get_attribute('row-index')
+                if row_idx and row_idx not in seen_indices:
+                    seen_indices.add(row_idx)
+                    unique_rows.append((int(row_idx), row))
+
+            # row-index 순서로 정렬
+            unique_rows.sort(key=lambda x: x[0])
+            print(f"    ✅ {len(unique_rows)}개 고유 행 (중복 제거 후)")
+
+            for idx, (row_index, row) in enumerate(unique_rows):
                 try:
                     cells = row.find_elements(By.CSS_SELECTOR, "div[role='gridcell']")
 
