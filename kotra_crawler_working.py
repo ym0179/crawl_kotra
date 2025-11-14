@@ -165,10 +165,24 @@ class KotraSeleniumCrawler:
 
             for idx, (row_index, row) in enumerate(unique_rows):
                 try:
+                    # 진행 상황 표시 (매 5개마다)
+                    if idx == 0 or (idx + 1) % 5 == 0:
+                        print(f"    📊 진행: {idx + 1}/{len(unique_rows)} 행 처리 중...")
+
                     cells = row.find_elements(By.CSS_SELECTOR, "div[role='gridcell']")
 
                     if len(cells) >= 7:
-                        company_name = cells[1].text.strip()
+                        # 회사명 추출 (title 속성에서 가져오기)
+                        try:
+                            company_name_elem = cells[1].find_element(By.CSS_SELECTOR, "span[title]")
+                            company_name = company_name_elem.get_attribute('title').strip()
+                        except:
+                            # title 속성이 없으면 텍스트로 가져오기
+                            company_name = cells[1].text.strip()
+
+                        # 회사명이 비어있으면 스킵
+                        if not company_name:
+                            continue
 
                         def parse_number(text):
                             cleaned = re.sub(r'[,\s]', '', text)
@@ -191,6 +205,8 @@ class KotraSeleniumCrawler:
                             print(f"    📝 첫 번째 데이터: {company_name}")
 
                 except Exception as e:
+                    if idx < 3:  # 처음 3개 행에서 에러 발생 시 디버깅 정보 출력
+                        print(f"    ⚠️ 행 {idx} 처리 중 오류: {str(e)}")
                     continue
 
             print(f"    ✅ {len(data)}개 데이터 추출")
